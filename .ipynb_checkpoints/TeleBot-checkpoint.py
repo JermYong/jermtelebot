@@ -13,24 +13,17 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 # Get credentials from environment variables (Render style)
-def get_api_key():
-    token = os.getenv('BOT_TOKEN') or os.getenv('API_TOKEN')
-    if token:
-        token = token.strip()  # Remove any whitespace
-    return token
+def get_api_key(path="/etc/secrets/API_KEY"):
+    with open(path, "r") as f:
+        return f.read().strip()
 
-def get_user_id():
-    user_id = os.getenv('ADMIN_ID') or os.getenv('Telegram_ID')
-    if user_id:
-        try:
-            return int(user_id.strip())
-        except (ValueError, AttributeError):
-            return 0
-    return 0
+def get_user_id(path="/etc/secrets/Telegram_ID"):
+    with open(path, "r") as f:
+        return int(f.read().strip())
 
-def get_channel_username():
-    channel = os.getenv('CHANNEL_USERNAME', '@YourChannelUsername')
-    return channel.strip() if channel else '@YourChannelUsername'
+def get_channel_username(path="/etc/secrets/CHANNEL_USERNAME"):
+    with open(path, "r") as f:
+        return f.read().strip()
 
 # Debug: Print environment variables (remove after testing)
 print("Environment variables check:")
