@@ -25,13 +25,6 @@ def get_channel_username(path="/etc/secrets/CHANNEL_USERNAME"):
     with open(path, "r") as f:
         return f.read().strip()
 
-# Debug: Print environment variables (remove after testing)
-print("Environment variables check:")
-print(f"BOT_TOKEN exists: {bool(os.getenv('BOT_TOKEN'))}")
-print(f"API_TOKEN exists: {bool(os.getenv('API_TOKEN'))}")
-print(f"ADMIN_ID exists: {bool(os.getenv('ADMIN_ID'))}")
-print(f"Telegram_ID exists: {bool(os.getenv('Telegram_ID'))}")
-
 API_TOKEN = get_api_key()
 ADMIN_ID = get_user_id()
 CHANNEL_USERNAME = get_channel_username()
