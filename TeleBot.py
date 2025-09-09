@@ -27,6 +27,7 @@ def get_channel_username(path="/etc/secrets/CHANNEL_USERNAME"):
 API_TOKEN = get_api_key()
 ADMIN_ID = get_user_id()
 CHANNEL_USERNAME = get_channel_username()
+CHANNEL_USERNAME = "@okchannel123123"
 
 bot = Bot(token=API_TOKEN)
 storage = MemoryStorage()
@@ -44,7 +45,9 @@ async def receive_submission(message: types.Message):
     if not message.photo:
         await message.reply("❌ Please send a photo with your post.")
         return
-
+    if not message.caption:
+        await message.reply("❌ Please send a caption with your post.")
+        return
     user_id = message.from_user.id
     caption = message.caption or ""
     file_id = message.photo[-1].file_id  # best quality
@@ -211,7 +214,14 @@ async def get_schedule_time(message: types.Message, state: FSMContext):
             logging.error(f"Error sending scheduled post: {e}")
             await bot.send_message(ADMIN_ID, f"❌ Error publishing scheduled post for user {user_id}: {str(e)}")
 
-    scheduler.add_job(job_wrapper, "date", run_date=dt, args=[text, file_id, user_id], id=f"post_{user_id}_{int(dt.timestamp())}")
+    scheduler.add_job(
+        send_scheduled_post,
+        "date",
+        run_date=dt,
+        args=[text, file_id, user_id],
+        id=f"post_{user_id}_{int(dt.timestamp())}"
+    )
+
 
     await bot.send_message(user_id, f"📅 Your post has been scheduled for {time_str}.")
     await message.reply(f"✅ Post scheduled for {time_str}.")

@@ -43,14 +43,16 @@ class AdminStates(StatesGroup):
     waiting_for_reject_reason = State()
 
 # User sends post with photo and optional text caption
-@dp.message(lambda message: message.from_user.id != ADMIN_ID)
+@dp.message(lambda message: message)
 async def receive_submission(message: types.Message):
     if not message.photo:
         await message.reply("❌ Please send a photo with your post.")
         return
-
+    if not message.caption:
+        await message.reply("❌ Please send a message with your post.")
+        return
     user_id = message.from_user.id
-    caption = message.caption or ""
+    caption = message.caption
     file_id = message.photo[-1].file_id  # best quality
 
     pending_posts[user_id] = {"caption": caption, "file_id": file_id}
@@ -91,8 +93,8 @@ async def approve_command(message: types.Message, state: FSMContext):
 # Admin rejects with /reject <user_id>, then waits for reason
 @dp.message(Command("reject"))
 async def reject_command(message: types.Message, state: FSMContext):
-    if message.from_user.id != ADMIN_ID:
-        return
+    # if message.from_user.id != ADMIN_ID:
+    #     return
 
     parts = message.text.split()
     if len(parts) >= 2 and parts[1].isdigit():
@@ -109,8 +111,8 @@ async def reject_command(message: types.Message, state: FSMContext):
 # Handle reject reason text input by admin
 @dp.message(AdminStates.waiting_for_reject_reason)
 async def process_reject_reason(message: types.Message, state: FSMContext):
-    if message.from_user.id != ADMIN_ID:
-        return
+    # if message.from_user.id != ADMIN_ID:
+    #     return
 
     data = await state.get_data()
     user_id = data.get("user_id")
@@ -165,8 +167,8 @@ async def reject_callback(callback_query: types.CallbackQuery, state: FSMContext
 # Handle schedule time input by admin
 @dp.message(AdminStates.waiting_for_schedule_time)
 async def get_schedule_time(message: types.Message, state: FSMContext):
-    if message.from_user.id != ADMIN_ID:
-        return
+    # if message.from_user.id != ADMIN_ID:
+    #     return
 
     data = await state.get_data()
     user_id = data.get("user_id")
@@ -221,12 +223,12 @@ async def get_schedule_time(message: types.Message, state: FSMContext):
     await message.reply(f"✅ Post scheduled for {time_str}.")
     await state.clear()
 
-@dp.message(Command("start"))
-async def start_command(message: types.Message):
-    if message.from_user.id == ADMIN_ID:
-        await message.reply("👋 Welcome Admin! Forward messages to approve/reject submissions.")
-    else:
-        await message.reply("👋 Welcome! Send me your photo and caption to submit a post for admin approval.")
+# @dp.message(Command("start"))
+# async def start_command(message: types.Message):
+#     if message.from_user.id == ADMIN_ID:
+#         await message.reply("👋 Welcome Admin! Forward messages to approve/reject submissions.")
+#     else:
+#         await message.reply("👋 Welcome! Send me your photo and caption to submit a post for admin approval.")
 
 # Start scheduler and polling (put this in your main.py or entrypoint)
 
