@@ -1,18 +1,62 @@
 import os
 import asyncio
 from aiogram import Bot, Dispatcher, types
+from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.storage.memory import MemoryStorage
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import datetime
+import logging
 
-def get_api_key(path="/etc/secrets/API_KEY"):
-    with open(path, "r") as f:
-        return f.read().strip()
-def get_user_id(path="/etc/secrets/Telegram_ID"):
-    with open(path, "r") as f:
-        return int(f.read().strip())
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+
+# Get credentials from environment variables (Render style)
+def get_api_key():
+    token = os.getenv('BOT_TOKEN') or os.getenv('API_TOKEN')
+    if token:
+        token = token.strip()  # Remove any whitespace
+    return token
+
+def get_user_id():
+    user_id = os.getenv('ADMIN_ID') or os.getenv('Telegram_ID')
+    if user_id:
+        try:
+            return int(user_id.strip())
+        except (ValueError, AttributeError):
+            return 0
+    return 0
+
+def get_channel_username():
+    channel = os.getenv('CHANNEL_USERNAME', '@YourChannelUsername')
+    return channel.strip() if channel else '@YourChannelUsername'
+
+# Debug: Print environment variables (remove after testing)
+print("Environment variables check:")
+print(f"BOT_TOKEN exists: {bool(os.getenv('BOT_TOKEN'))}")
+print(f"API_TOKEN exists: {bool(os.getenv('API_TOKEN'))}")
+print(f"ADMIN_ID exists: {bool(os.getenv('ADMIN_ID'))}")
+print(f"Telegram_ID exists: {bool(os.getenv('Telegram_ID'))}")
+
 API_TOKEN = get_api_key()
-ADMIN_ID = get_user_id() 
+ADMIN_ID = get_user_id()
+CHANNEL_USERNAME = get_channel_username()
 
+# More detailed error messages
+if not API_TOKEN:
+    available_vars = [var for var in ['BOT_TOKEN', 'API_TOKEN'] if os.getenv(var)]
+    raise ValueError(f"Bot token is required! Available env vars: {available_vars}. Please set BOT_TOKEN environment variable.")
+
+if not ADMIN_ID:
+    available_vars = [var for var in ['ADMIN_ID', 'Telegram_ID'] if os.getenv(var)]
+    raise ValueError(f"Admin ID is required! Available env vars: {available_vars}. Please set ADMIN_ID environment variable.")
+
+# Validate token format (Telegram tokens should be like: 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11)
+if not (API_TOKEN.count(':') == 1 and len(API_TOKEN) > 40):
+    raise ValueError(f"Bot token format appears invalid. Token should be like: 123456:ABC-DEF... Got: {API_TOKEN[:10]}...")
+
+# Initialize bot and dispatcher with memory storage
 bot = Bot(token=API_TOKEN)
 storage = MemoryStorage()
 dp = Dispatcher(storage=storage)
