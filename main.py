@@ -24,6 +24,10 @@ app = FastAPI()
 async def health():
     return {"status": "alive"}
 
+@app.head("/health")
+async def health():
+    return {"status": "alive"}
+
 async def run_bot():
     """Main function to start the bot"""
     try:
