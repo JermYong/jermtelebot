@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from telebot import dp, bot  # Import your Dispatcher and Bot objects from telebot.py
+from TeleBot import dp, bot  # Import your Dispatcher and Bot objects from telebot.py
 
 async def main() -> None:
     logging.basicConfig(level=logging.INFO)
