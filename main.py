@@ -5,7 +5,7 @@ import os
 from TeleBot import dp, bot, scheduler
 
 from fastapi import FastAPI
-import uvicorn
+from uvicorn import Config, Server
 
 # Configure logging
 logging.basicConfig(
@@ -47,11 +47,24 @@ async def run_bot():
             scheduler.shutdown()
         await bot.session.close()
 
-def run_webserver():
-    port = int(os.environ.get("PORT", 10000))  # Render injects PORT
-    uvicorn.run(app, host="0.0.0.0", port=port)
+async def main():
+    # Start bot as background task
+    bot_task = asyncio.create_task(run_bot())
+
+    # Start FastAPI server
+    port = int(os.environ.get("PORT", 10000))
+    config = Config(app=app, host="0.0.0.0", port=port, log_level="info")
+    server = Server(config)
+    await server.serve()  # runs in same event loop
+
+    # Wait for bot task to finish (never ends unless bot stops)
+    await bot_task
 
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    loop.create_task(run_bot())   # run bot in background
-    run_webserver()
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("Bot stopped by user")
+    except Exception as e:
+        logger.error(f"Fatal error: {e}")
+        sys.exit(1)
