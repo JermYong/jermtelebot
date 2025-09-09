@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import sys
-import threading
 import os
 from TeleBot import dp, bot, scheduler
 
@@ -21,15 +20,11 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-@app.get("/")
-async def root():
+@app.get("/health")
+async def health():
     return {"status": "alive"}
 
-def run_webserver():
-    port = int(os.environ.get("PORT", 10000))  # Render injects PORT
-    uvicorn.run(app, host="0.0.0.0", port=port)
-
-async def main():
+async def run_bot():
     """Main function to start the bot"""
     try:
         logger.info("Starting bot...")
@@ -52,11 +47,11 @@ async def main():
             scheduler.shutdown()
         await bot.session.close()
 
+def run_webserver():
+    port = int(os.environ.get("PORT", 10000))  # Render injects PORT
+    uvicorn.run(app, host="0.0.0.0", port=port)
+
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        logger.info("Bot stopped by user")
-    except Exception as e:
-        logger.error(f"Fatal error: {e}")
-        sys.exit(1)
+    loop = asyncio.get_event_loop()
+    loop.create_task(run_bot())   # run bot in background
+    run_webserver()
