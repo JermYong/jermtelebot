@@ -29,19 +29,6 @@ API_TOKEN = get_api_key()
 ADMIN_ID = get_user_id()
 CHANNEL_USERNAME = get_channel_username()
 
-# More detailed error messages
-if not API_TOKEN:
-    available_vars = [var for var in ['BOT_TOKEN', 'API_TOKEN'] if os.getenv(var)]
-    raise ValueError(f"Bot token is required! Available env vars: {available_vars}. Please set BOT_TOKEN environment variable.")
-
-if not ADMIN_ID:
-    available_vars = [var for var in ['ADMIN_ID', 'Telegram_ID'] if os.getenv(var)]
-    raise ValueError(f"Admin ID is required! Available env vars: {available_vars}. Please set ADMIN_ID environment variable.")
-
-# Validate token format (Telegram tokens should be like: 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11)
-if not (API_TOKEN.count(':') == 1 and len(API_TOKEN) > 40):
-    raise ValueError(f"Bot token format appears invalid. Token should be like: 123456:ABC-DEF... Got: {API_TOKEN[:10]}...")
-
 # Initialize bot and dispatcher with memory storage
 bot = Bot(token=API_TOKEN)
 storage = MemoryStorage()

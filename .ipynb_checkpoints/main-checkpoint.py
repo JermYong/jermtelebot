@@ -19,7 +19,12 @@ async def main():
     try:
         logger.info("Starting bot...")
         
+        # Start the scheduler within the event loop
+        logger.info("Starting scheduler...")
+        scheduler.start()
+        
         # Start polling
+        logger.info("Starting polling...")
         await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
         
     except Exception as e:
