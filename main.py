@@ -1,7 +1,12 @@
 import asyncio
 import logging
 import sys
+import threading
+import os
 from TeleBot import dp, bot, scheduler
+
+from fastapi import FastAPI
+import uvicorn
 
 # Configure logging
 logging.basicConfig(
@@ -13,6 +18,16 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
+app = FastAPI()
+
+@app.get("/")
+async def root():
+    return {"status": "alive"}
+
+def run_webserver():
+    port = int(os.environ.get("PORT", 10000))  # Render injects PORT
+    uvicorn.run(app, host="0.0.0.0", port=port)
 
 async def main():
     """Main function to start the bot"""
