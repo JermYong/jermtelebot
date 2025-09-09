@@ -40,8 +40,7 @@ pending_posts = {}  # user_id: {"text": ..., "msg_id": ...}
 class AdminStates(StatesGroup):
     waiting_for_schedule_time = State()
 
-# Start scheduler
-scheduler.start()
+# Note: Scheduler will be started in main.py within the event loop
 
 # Handler for regular user submissions
 @dp.message(lambda message: message.from_user.id != ADMIN_ID)
