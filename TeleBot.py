@@ -62,7 +62,7 @@ async def receive_submission(message: types.Message):
         return
     
     if len(message.caption) > 970:
-        await message.reply("❌ Caption is too long. Please send a caption shorter than 1024 characters.")
+        await message.reply("❌ Caption is too long. Please send a caption shorter than 970 characters.")
         return
     
     user_id = message.from_user.id
