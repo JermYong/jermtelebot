@@ -6,7 +6,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import logging
 from logger_utils import log_action
 
@@ -224,7 +224,11 @@ async def get_schedule_time(message: types.Message, state: FSMContext):
 
     # Scheduled posting
     try:
+        local_tz = timezone(timedelta(hours=8))
         dt = datetime.strptime(time_str, "%Y-%m-%d %H:%M")
+        dt = dt.replace(tzinfo=local_tz)    
+        now = datetime.now(tz=local_tz)
+        
         if dt <= datetime.now():
             await message.reply("❌ Scheduled time must be in the future.")
             return
@@ -253,7 +257,7 @@ async def get_schedule_time(message: types.Message, state: FSMContext):
     scheduler.add_job(
         send_scheduled_post,    # schedule the async function directly
         "date",
-        run_date=dt,
+        run_date=dt.astimezone(timezone.utc),
         args=[text, file_id, user_id],
         id=f"post_{user_id}_{int(dt.timestamp())}"
     )
