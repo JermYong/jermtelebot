@@ -8,6 +8,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import datetime
 import logging
+from logger_utils import log_action
 
 logging.basicConfig(level=logging.INFO)
 
@@ -24,6 +25,7 @@ def get_channel_username(path="/etc/secrets/CHANNEL_USERNAME"):
     with open(path, "r") as f:
         return f.read().strip()
 
+
 API_TOKEN = get_api_key()
 ADMIN_ID = get_user_id()
 CHANNEL_USERNAME = get_channel_username()
@@ -33,7 +35,7 @@ bot = Bot(token=API_TOKEN)
 storage = MemoryStorage()
 dp = Dispatcher(storage=storage)
 scheduler = AsyncIOScheduler()
-pending_posts = {}  # user_id: {"caption": ..., "file_id": ...}
+pending_posts = {} 
 
 class AdminStates(StatesGroup):
     waiting_for_schedule_time = State()
@@ -51,20 +53,22 @@ async def receive_submission(message: types.Message):
     user_id = message.from_user.id
     caption = message.caption or ""
     file_id = message.photo[-1].file_id  # best quality
-
-    pending_posts[user_id] = {"caption": caption, "file_id": file_id}
-
+    submission_id = message.message_id
+    pending_posts[user_id] = {"submission_id":submission_id, 
+                              "details": {"caption": caption, "file_id": file_id}}
+    log_action(user_id, f"submission with {submission_id}", {"caption": caption, "file_id": file_id})
+    
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
         [
-            types.InlineKeyboardButton(text="✅ Approve", callback_data=f"approve_{user_id}"),
-            types.InlineKeyboardButton(text="❌ Reject", callback_data=f"reject_{user_id}")
+            types.InlineKeyboardButton(text="✅ Approve", callback_data=f"approve_{submission_id}"),
+            types.InlineKeyboardButton(text="❌ Reject", callback_data=f"reject_{submission_id}")
         ]
     ])
 
     await bot.send_photo(
         ADMIN_ID,
         file_id,
-        caption=f"New submission from {user_id} (@{message.from_user.username or 'no_username'}):\n\n{caption}",
+        caption=f"New submission,{submission_id} from {user_id} (@{message.from_user.username or 'no_username'}):\n\n{caption}",
         reply_markup=keyboard
     )
     await message.reply("✅ Submission received! Awaiting admin review.")
@@ -77,11 +81,13 @@ async def approve_command(message: types.Message, state: FSMContext):
 
     parts = message.text.split()
     if len(parts) >= 2 and parts[1].isdigit():
+        print(parts)
         user_id = int(parts[1])
         if user_id not in pending_posts:
             await message.reply("❌ No pending submission for this user.")
             return
         await state.update_data(user_id=user_id)
+        # await state.update_data(submission_id=submission_id)
         await state.set_state(AdminStates.waiting_for_schedule_time)
         await message.reply("📅 Please send schedule time ('YYYY-MM-DD HH:MM') or 'now' for immediate posting:")
     else:
@@ -100,6 +106,7 @@ async def reject_command(message: types.Message, state: FSMContext):
             await message.reply("❌ No pending submission for this user.")
             return
         await state.update_data(user_id=user_id)
+        # await state.update_data(submission_id=submission_id)
         await state.set_state(AdminStates.waiting_for_reject_reason)
         await message.reply("❌ Send reject reason:")
     else:
@@ -110,13 +117,15 @@ async def reject_command(message: types.Message, state: FSMContext):
 async def process_reject_reason(message: types.Message, state: FSMContext):
     if message.from_user.id != ADMIN_ID:
         return
-
+    
     data = await state.get_data()
     user_id = data.get("user_id")
+    # submission_id = data.get("submission_id")
     reason = message.text.strip()
 
-    if user_id in pending_posts:
-        del pending_posts[user_id]
+    for sub in pending_posts:
+        if user_id in sub.keys:
+            del pending_posts[user_id] #[submission_id]
 
     try:
         await bot.send_message(user_id, f"❌ Your submission was rejected.\nReason: {reason}")
@@ -143,6 +152,8 @@ async def approve_callback(callback_query: types.CallbackQuery, state: FSMContex
     await state.set_state(AdminStates.waiting_for_schedule_time)
     await callback_query.message.reply("📅 Please send schedule time ('YYYY-MM-DD HH:MM') or 'now' for immediate posting:")
     await callback_query.answer()
+    log_action(user_id, "approved", {"Message": callback_query.message, "schedule": callback_query.answer()})
+
 
 # Inline button reject handler
 @dp.callback_query(lambda c: c.data.startswith('reject_'))
@@ -160,6 +171,8 @@ async def reject_callback(callback_query: types.CallbackQuery, state: FSMContext
     await state.set_state(AdminStates.waiting_for_reject_reason)
     await callback_query.message.reply("❌ Send reject reason:")
     await callback_query.answer()
+    log_action(user_id, "rejected", {"Message": callback_query.message, "reason": callback_query.answer()})
+
 
 # Handle schedule time input by admin
 @dp.message(AdminStates.waiting_for_schedule_time)
@@ -215,7 +228,7 @@ async def get_schedule_time(message: types.Message, state: FSMContext):
             await bot.send_message(ADMIN_ID, f"❌ Error publishing scheduled post for user {user_id}: {str(e)}")
 
     scheduler.add_job(
-        send_scheduled_post,
+        job_wrapper,
         "date",
         run_date=dt,
         args=[text, file_id, user_id],
@@ -231,14 +244,18 @@ async def get_schedule_time(message: types.Message, state: FSMContext):
 async def start_command(message: types.Message):
     if message.from_user.id == ADMIN_ID:
         await message.reply("👋 Welcome Admin! Forward messages to approve/reject submissions.")
+        log_action(message.from_user.id, "Admin /start", {})
+
     else:
         await message.reply("👋 Welcome! Send me your photo and caption to submit a post for admin approval.")
+        log_action(message.from_user.id, "/start", {})
 
-# Start scheduler and polling (put this in your main.py or entrypoint)
 
-async def main():
-    scheduler.start()
-    await dp.start_polling()
+# # Start scheduler and polling (put this in your main.py or entrypoint)
 
-if __name__ == "__main__":
-    asyncio.run(main())
+# async def main():
+#     scheduler.start()
+#     await dp.start_polling()
+
+# # if __name__ == "__main__":
+# #     asyncio.run(main())
