@@ -61,7 +61,7 @@ async def receive_submission(message: types.Message):
         await message.reply("❌ Please send a caption with your post.")
         return
     
-    if len(message.caption) > 1024:
+    if len(message.caption) > 970:
         await message.reply("❌ Caption is too long. Please send a caption shorter than 1024 characters.")
         return
     
