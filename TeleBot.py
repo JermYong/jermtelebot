@@ -70,8 +70,8 @@ async def receive_submission(message: types.Message):
     
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
         [
-            types.InlineKeyboardButton(text="✅ Approve", callback_data=f"approve_{submission_id}"),
-            types.InlineKeyboardButton(text="❌ Reject", callback_data=f"reject_{submission_id}")
+            types.InlineKeyboardButton(text="✅ Approve", callback_data=f"approve_{user_id}"),
+            types.InlineKeyboardButton(text="❌ Reject", callback_data=f"reject_{user_id}")
         ]
     ])
 
