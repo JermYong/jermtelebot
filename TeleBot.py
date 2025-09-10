@@ -72,7 +72,7 @@ async def receive_submission(message: types.Message):
     pending_posts[user_id] = {"submission_id":submission_id, 
                             "caption": caption, 
                             "file_id": file_id}
-    log_action(user_id, f"@{message.from_user.username}, submission with {submission_id}", {"caption": caption, "file_id": file_id})
+    log_action(user_id, f"@{message.from_user.username}, submission with {submission_id}", {"caption": caption + f"len:{len(caption)}", "file_id": file_id})
     
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
         [
