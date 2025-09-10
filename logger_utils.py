@@ -58,3 +58,4 @@ def log_action(user_id: int, action: str, details: dict = None):
         ContentType="application/json"
     )
     print(f"[S3 LOG] Logged {action} for user {user_id}")
+    print(f"{action}: {details}")

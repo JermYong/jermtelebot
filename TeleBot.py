@@ -67,7 +67,7 @@ async def receive_submission(message: types.Message):
     pending_posts[user_id] = {"submission_id":submission_id, 
                               "caption": caption, 
                               "file_id": file_id}
-    log_action(user_id, f"submission with {submission_id}", {"caption": caption, "file_id": file_id})
+    log_action(user_id, f"@{message.from_user.username}, submission with {submission_id}", {"caption": caption, "file_id": file_id})
     
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
         [
@@ -134,12 +134,13 @@ async def process_reject_reason(message: types.Message, state: FSMContext):
     # submission_id = data.get("submission_id")
     reason = message.text.strip()
 
-    for sub in pending_posts:
-        if user_id in pending_posts:
-            del pending_posts[user_id] #[submission_id]
+    if user_id in pending_posts:
+        del pending_posts[user_id] #[submission_id]
 
     try:
         await bot.send_message(user_id, f"❌ Your submission was rejected.\nReason: {reason}")
+        log_action(user_id, "rejected", {"reason": reason})
+
     except Exception:
         # user maybe blocked bot or other error
         pass
@@ -163,8 +164,6 @@ async def approve_callback(callback_query: types.CallbackQuery, state: FSMContex
     await state.set_state(AdminStates.waiting_for_schedule_time)
     await callback_query.message.reply("📅 Please send schedule time ('YYYY-MM-DD HH:MM') or 'now' for immediate posting:")
     await callback_query.answer()
-    log_action(user_id, "approved", {"Message": callback_query.message, "schedule": callback_query.answer()})
-
 
 # Inline button reject handler
 @dp.callback_query(lambda c: c.data.startswith('reject_'))
@@ -177,13 +176,14 @@ async def reject_callback(callback_query: types.CallbackQuery, state: FSMContext
     if user_id not in pending_posts:
         await callback_query.answer("No pending submission for this user.")
         return
+    
+    data = await state.get_data()
+    reason = data.get("reject_reason", "No reason provided")
 
     await state.update_data(user_id=user_id)
     await state.set_state(AdminStates.waiting_for_reject_reason)
     await callback_query.message.reply("❌ Send reject reason:")
     await callback_query.answer()
-    log_action(user_id, "rejected", {"Message": callback_query.message, "reason": callback_query.answer()})
-
 
 # Handle schedule time input by admin
 @dp.message(AdminStates.waiting_for_schedule_time)
@@ -204,8 +204,11 @@ async def get_schedule_time(message: types.Message, state: FSMContext):
 
     # Immediate posting
     if time_str.lower() == "now":
+        log_action(ADMIN_ID, "approved submission", {"Message": "approved, now"})
+
         try:
             await bot.send_photo(CHANNEL_USERNAME, file_id, caption=text)
+            log_action(123, f"bot schedule send to {CHANNEL_USERNAME}", {"Message": text, "file_id": file_id})
             await bot.send_message(user_id, "🎉 Your post has been published!")
             await message.reply("✅ Post published immediately.")
             del pending_posts[user_id]
@@ -224,6 +227,8 @@ async def get_schedule_time(message: types.Message, state: FSMContext):
         await message.reply("❌ Invalid date/time format. Use 'YYYY-MM-DD HH:MM' or 'now'.")
         return
 
+    log_action(ADMIN_ID, "approved submission", {"Message": f"approved, scheduled for {time_str}"})
+
     # Define async job for scheduler: wrap coroutine call in a task
     def job_wrapper(caption, file_id, user_id):
         asyncio.create_task(send_scheduled_post(caption, file_id, user_id))
@@ -231,6 +236,8 @@ async def get_schedule_time(message: types.Message, state: FSMContext):
     async def send_scheduled_post(caption, file_id, user_id):
         try:
             await bot.send_photo(CHANNEL_USERNAME, file_id, caption=caption)
+            log_action(ADMIN_ID, "Bot scheduled message", {"Message": f"Bot sending, {time_str}"})
+
             await bot.send_message(user_id, "🎉 Your scheduled post has been published!")
             if user_id in pending_posts:
                 del pending_posts[user_id]
@@ -239,13 +246,12 @@ async def get_schedule_time(message: types.Message, state: FSMContext):
             await bot.send_message(ADMIN_ID, f"❌ Error publishing scheduled post for user {user_id}: {str(e)}")
 
     scheduler.add_job(
-        job_wrapper,
+        send_scheduled_post,    # schedule the async function directly
         "date",
         run_date=dt,
         args=[text, file_id, user_id],
         id=f"post_{user_id}_{int(dt.timestamp())}"
     )
-
 
     await bot.send_message(user_id, f"📅 Your post has been scheduled for {time_str}.")
     await message.reply(f"✅ Post scheduled for {time_str}.")
