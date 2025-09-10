@@ -86,6 +86,7 @@ async def receive_submission(message: types.Message):
         await message.reply("✅ Submission received! Awaiting admin review.")
     else:
         await message.reply("❌ Message more than 1024 characters, please try again.")
+        return
 
 # Admin approves with /approve <user_id>
 @dp.message(Command("approve"))
