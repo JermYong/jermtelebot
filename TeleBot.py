@@ -41,6 +41,16 @@ class AdminStates(StatesGroup):
     waiting_for_schedule_time = State()
     waiting_for_reject_reason = State()
 
+@dp.message(Command("start"))
+async def start_command(message: types.Message):
+    if message.from_user.id == ADMIN_ID:
+        await message.reply("👋 Welcome Admin! Forward messages to approve/reject submissions.")
+        log_action(message.from_user.id, "Admin /start", {})
+
+    else:
+        await message.reply("👋 Welcome! Send me your photo and caption to submit a post for admin approval.")
+        log_action(message.from_user.id, "/start", {})
+        
 # User sends post with photo and optional text caption
 @dp.message(lambda message: message.from_user.id != ADMIN_ID)
 async def receive_submission(message: types.Message):
@@ -68,7 +78,7 @@ async def receive_submission(message: types.Message):
     await bot.send_photo(
         ADMIN_ID,
         file_id,
-        caption=f"New submission,{submission_id} from {user_id} (@{message.from_user.username or 'no_username'}):\n\n{caption}",
+        caption=f"New submission, ID: {submission_id} from {user_id} (@{message.from_user.username or 'no_username'}):\n\n{caption}",
         reply_markup=keyboard
     )
     await message.reply("✅ Submission received! Awaiting admin review.")
@@ -240,15 +250,7 @@ async def get_schedule_time(message: types.Message, state: FSMContext):
     await message.reply(f"✅ Post scheduled for {time_str}.")
     await state.clear()
 
-@dp.message(Command("start"))
-async def start_command(message: types.Message):
-    if message.from_user.id == ADMIN_ID:
-        await message.reply("👋 Welcome Admin! Forward messages to approve/reject submissions.")
-        log_action(message.from_user.id, "Admin /start", {})
 
-    else:
-        await message.reply("👋 Welcome! Send me your photo and caption to submit a post for admin approval.")
-        log_action(message.from_user.id, "/start", {})
 
 
 # # Start scheduler and polling (put this in your main.py or entrypoint)
