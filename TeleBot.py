@@ -229,7 +229,7 @@ async def get_schedule_time(message: types.Message, state: FSMContext):
         dt = dt.replace(tzinfo=local_tz)    
         now = datetime.now(tz=local_tz)
         
-        if dt <= datetime.now():
+        if dt <= now:
             await message.reply("❌ Scheduled time must be in the future.")
             return
     except ValueError:
