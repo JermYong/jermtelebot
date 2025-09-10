@@ -62,27 +62,30 @@ async def receive_submission(message: types.Message):
         return
     user_id = message.from_user.id
     caption = message.caption or ""
-    file_id = message.photo[-1].file_id  # best quality
-    submission_id = message.message_id
-    pending_posts[user_id] = {"submission_id":submission_id, 
-                              "caption": caption, 
-                              "file_id": file_id}
-    log_action(user_id, f"@{message.from_user.username}, submission with {submission_id}", {"caption": caption, "file_id": file_id})
-    
-    keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
-        [
-            types.InlineKeyboardButton(text="✅ Approve", callback_data=f"approve_{user_id}"),
-            types.InlineKeyboardButton(text="❌ Reject", callback_data=f"reject_{user_id}")
-        ]
-    ])
+    if len(caption)<=1024:
+        file_id = message.photo[-1].file_id  # best quality
+        submission_id = message.message_id
+        pending_posts[user_id] = {"submission_id":submission_id, 
+                                "caption": caption, 
+                                "file_id": file_id}
+        log_action(user_id, f"@{message.from_user.username}, submission with {submission_id}", {"caption": caption, "file_id": file_id})
+        
+        keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
+            [
+                types.InlineKeyboardButton(text="✅ Approve", callback_data=f"approve_{user_id}"),
+                types.InlineKeyboardButton(text="❌ Reject", callback_data=f"reject_{user_id}")
+            ]
+        ])
 
-    await bot.send_photo(
-        ADMIN_ID,
-        file_id,
-        caption=f"New submission, ID: {submission_id} from {user_id} (@{message.from_user.username or 'no_username'}):\n\n{caption}",
-        reply_markup=keyboard
-    )
-    await message.reply("✅ Submission received! Awaiting admin review.")
+        await bot.send_photo(
+            ADMIN_ID,
+            file_id,
+            caption=f"New submission, ID: {submission_id} from {user_id} (@{message.from_user.username or 'no_username'}):\n\n{caption}",
+            reply_markup=keyboard
+        )
+        await message.reply("✅ Submission received! Awaiting admin review.")
+    else:
+        await message.reply("❌ Message more than 1024 characters, please try again.")
 
 # Admin approves with /approve <user_id>
 @dp.message(Command("approve"))
