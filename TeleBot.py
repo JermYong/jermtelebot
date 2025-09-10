@@ -135,7 +135,7 @@ async def process_reject_reason(message: types.Message, state: FSMContext):
     reason = message.text.strip()
 
     for sub in pending_posts:
-        if user_id in sub.keys:
+        if user_id in pending_posts:
             del pending_posts[user_id] #[submission_id]
 
     try:
