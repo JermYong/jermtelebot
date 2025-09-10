@@ -50,7 +50,7 @@ async def start_command(message: types.Message):
     else:
         await message.reply("👋 Welcome! Send me your photo and caption to submit a post for admin approval.")
         log_action(message.from_user.id, "/start", {})
-        
+
 # User sends post with photo and optional text caption
 @dp.message(lambda message: message.from_user.id != ADMIN_ID)
 async def receive_submission(message: types.Message):
@@ -255,9 +255,9 @@ async def get_schedule_time(message: types.Message, state: FSMContext):
 
 # # Start scheduler and polling (put this in your main.py or entrypoint)
 
-# async def main():
-#     scheduler.start()
-#     await dp.start_polling()
+async def main():
+    scheduler.start()
+    await dp.start_polling()
 
 # # if __name__ == "__main__":
 # #     asyncio.run(main())
