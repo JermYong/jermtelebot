@@ -65,7 +65,8 @@ async def receive_submission(message: types.Message):
     file_id = message.photo[-1].file_id  # best quality
     submission_id = message.message_id
     pending_posts[user_id] = {"submission_id":submission_id, 
-                              "details": {"caption": caption, "file_id": file_id}}
+                              "caption": caption, 
+                              "file_id": file_id}
     log_action(user_id, f"submission with {submission_id}", {"caption": caption, "file_id": file_id})
     
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
