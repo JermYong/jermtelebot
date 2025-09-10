@@ -64,11 +64,11 @@ async def main():
     # Wait for bot task to finish (never ends unless bot stops)
     await bot_task
 
+# Start scheduler and polling (put this in your main.py or entrypoint)
+
+async def main():
+    scheduler.start()
+    await dp.start_polling()
+
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        logger.info("Bot stopped by user")
-    except Exception as e:
-        logger.error(f"Fatal error: {e}")
-        sys.exit(1)
+    asyncio.run(main())
